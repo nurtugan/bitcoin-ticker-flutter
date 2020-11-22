@@ -1,7 +1,10 @@
 import 'dart:io' show Platform;
+import 'package:bitcoin_ticker/services/networking.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'coin_data.dart';
+import 'coin_data.dart';
+import 'currency_card.dart';
 
 class PriceScreen extends StatefulWidget {
   @override
@@ -9,17 +12,32 @@ class PriceScreen extends StatefulWidget {
 }
 
 class _PriceScreenState extends State<PriceScreen> {
-  String selectedCurrency = 'USD';
+  NetworkHelper networkHelper = NetworkHelper();
+  String selectedCurrency = 'AUD';
+  String btcCost = '?';
+  String ethCost = '?';
+  String ltcCost = '?';
+
+  void getCurrencyData() async {
+    var rates = await networkHelper.getDataFor(currency: selectedCurrency);
+    setState(
+      () {
+        btcCost = rates[0];
+        ethCost = rates[1];
+        ltcCost = rates[2];
+      },
+    );
+  }
 
   DropdownButton<String> androidDropdown() {
-    List<DropdownMenuItem<String>> dropdownMenuItems = [];
-    for (String currency in currenciesList) {
-      var dropdownMenuItem = DropdownMenuItem(
-        child: Text(currency),
-        value: currency,
-      );
-      dropdownMenuItems.add(dropdownMenuItem);
-    }
+    List<DropdownMenuItem<String>> dropdownMenuItems = currenciesList.map(
+      (currency) {
+        return DropdownMenuItem(
+          child: Text(currency),
+          value: currency,
+        );
+      },
+    ).toList();
     return DropdownButton<String>(
       value: selectedCurrency,
       items: dropdownMenuItems,
@@ -34,18 +52,23 @@ class _PriceScreenState extends State<PriceScreen> {
   }
 
   CupertinoPicker iOSPicker() {
-    List<Text> pickerItems = [];
-    for (String currency in currenciesList) {
-      pickerItems.add(Text(currency));
-    }
+    List<Text> pickerItems =
+        currenciesList.map((currency) => Text(currency)).toList();
     return CupertinoPicker(
       backgroundColor: Colors.lightBlue,
       itemExtent: 32.0,
       onSelectedItemChanged: (selectedIndex) {
-        print(selectedIndex);
+        selectedCurrency = currenciesList[selectedIndex];
+        getCurrencyData();
       },
       children: pickerItems,
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getCurrencyData();
   }
 
   @override
@@ -55,29 +78,25 @@ class _PriceScreenState extends State<PriceScreen> {
         title: Text('🤑 Coin Ticker'),
       ),
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Padding(
-            padding: EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0),
-            child: Card(
-              color: Colors.lightBlueAccent,
-              elevation: 5.0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
-                child: Text(
-                  '1 BTC = ? USD',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
+          CurrencyCard(
+            cryptoCurrencyName: 'BTC',
+            cost: btcCost,
+            selectedCurrency: selectedCurrency,
+          ),
+          CurrencyCard(
+            cryptoCurrencyName: 'ETH',
+            cost: ethCost,
+            selectedCurrency: selectedCurrency,
+          ),
+          CurrencyCard(
+            cryptoCurrencyName: 'LTC',
+            cost: ltcCost,
+            selectedCurrency: selectedCurrency,
+          ),
+          Expanded(
+            child: Container(),
           ),
           Container(
             height: 150.0,
